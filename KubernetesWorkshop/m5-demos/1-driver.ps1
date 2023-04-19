@@ -10,11 +10,6 @@ cd ../m5-demos
 
 
 #Demo 1 - Creating a dotnet core web application
-#Install Docker and .NET Core from a powershell prompt with an administrative priviledges
-#RUN WITH ADMINISTRATIVE PRIVILEDGES
-#NOTE: You will need to re-launch powershell to get dotnet into your path
-
-
 #This is our simple hello world web app and will be included in the course downloads.
 Get-ChildItem ./v1/webapp
 
@@ -39,45 +34,44 @@ docker image ls webappimage:v1
 
 
 #Demo 3 - Push a container to a container registry
-#To create a repository in our registry, follow the directions here
-#Create an account at http://hub.docker.com
-#The Namespace will be your login name, your repository name can match mine below, webappimage
-#https://docs.docker.com/docker-hub/repos/create/
+# - Create an account at http://hub.docker.com
+# - Then follow the directions here https://docs.docker.com/docker-hub/repos/create/ to create a repository
+# - The Namespace will be your login name, your repository name can match mine below, webappimage
 
 
-
-#Then let's log into docker using the account above.
+#Then let's log into docker using the account information that you used to sign up at docker hub.
 docker login 
 
 
-#Check out the list of local images for our image we want to upload
+#Check out the list of local images for our image we want to push to our repository
 docker image ls webappimage
 
 
 #Tag our image in the format your registry repository namespace/image:tag
-#You'll be using your own repository, so update that information here. 
-docker tag webappimage:v1 nocentino/webappimage:v1
+#You'll be using your own repository, so change YOURUSERNAMEHERE to your docker hub username.
+docker tag webappimage:v1 YOURUSERNAMEHERE/webappimage:v1
 
 
 #Now push that locally tagged image into our repository at docker hub
 #You'll be using your own repository namespace, so update that information here. 
-docker push nocentino/webappimage:v1
+docker push YOURUSERNAMEHERE/webappimage:v1
 
-open a browser to your repository https://hub.docker.com/repository/docker/nocentino/webappimage
+#open a browser to your repository You should see your image in the listing 
+https://hub.docker.com/repository/docker/YOURUSERNAMEHERE/webappimage
 
 
 #Demo 4 - Create a Kubernetes Cluster and deploy our application
 
-#Let's rollout our service
+#Let's rollout our service...basic service. Examing service.yaml for the details.
 kubectl apply -f service.yaml
 kubectl get service
 
-#You need to update the image in the deployment.yaml prior to deploying
-#Set the image to YOUR image in docker hub
+#You need to update the image in the deploymentv1.yaml prior to deploying
+#Set the image on line 19 to YOUR image that you pushed to docker hub
 kubectl apply -f deploymentv1.yaml
 
 
-#Check out the status
+#Check out the status of this deployment.
 kubectl get deployment
 kubectl get replicaset
 kubectl get pods 
@@ -107,13 +101,13 @@ docker build -f ./v2/Dockerfile -t webappimage:v2 .
 
 
 #Step 2 - Tag and push the v2 image
-docker tag webappimage:v2 nocentino/webappimage:v2
-docker push nocentino/webappimage:v2
+docker tag webappimage:v2 YOURUSERNAMEHERE/webappimage:v2
+docker push YOURUSERNAMEHERE/webappimage:v2
 
 
 #Step 3 - Update your deployment with your new image
-#You need to update the image in the deployment.yaml prior to deploying
-#Set the image to YOUR image in docker hub
+#You need to update the image in the deploymentv2.yaml prior to deploying
+#Set the image on line 19 to YOUR image that you pushed to docker hub
 kubectl apply -f deploymentv2.yaml
 
 
@@ -133,7 +127,7 @@ kubectl rollout status deployment webapp-deployment
 kubectl delete deployment webapp-deployment
 kubectl delete service webapp
 docker rmi webappimage:v1
-docker rmi nocentino/webappimage:v1
+docker rmi YOURUSERNAMEHERE/webappimage:v1
 docker rmi webappimage:v2
-docker rmi nocentino/webappimage:v2
+docker rmi YOURUSERNAMEHERE/webappimage:v2
 

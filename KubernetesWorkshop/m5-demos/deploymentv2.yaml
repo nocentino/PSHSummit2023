@@ -16,6 +16,6 @@ spec:
     spec:
       containers:
       - name: webapp
-        image: nocentino/webappimage:v2
+        image: YOURUSERNAMEHERE/webappimage:v2
         ports:
         - containerPort: 80
