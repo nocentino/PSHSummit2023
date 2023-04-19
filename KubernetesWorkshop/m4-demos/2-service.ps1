@@ -21,11 +21,12 @@ code service.yaml
 kubectl apply -f service.yaml
 
 
-#Look at the details of our service, check out the selector. And how it refers back the the pods' labels form our deployment.
+#Look at the details of our service, check out the selector. 
+#And how it refers back the the pods' labels form our deployment.
 kubectl describe service hello-world 
 
 
-#Which pods are a member of this service?
+#We can use labels to determine which pods are a member of this service, and thus will have traffic load balanced to?
 kubectl get pods --selector app=hello-world -o wide
 
 

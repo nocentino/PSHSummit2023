@@ -28,11 +28,11 @@ kubectl get all --all-namespaces
 kubectl get pods --namespace kube-system
 
 
-#Declaratively create a namespace
+#Imperatively create a namespace
 kubectl create namespace playground1
 
 
-#Imperatively create a namespace...but there's some character restrictions. Lower case and only dashes.
+#Imperatively create a namespace...but there's some character restrictions. Lowercase and only dashes.
 kubectl create namespace Playground1
 
 
@@ -90,22 +90,23 @@ kubectl get pods --show-labels
 
 
 #Look at one Pod's labels in our cluster
-kubectl describe pod nginx-pod-1
+kubectl describe pod nginx-pod-1 | more
 
 
-#Query labels and selectors
+#Query labels and selectors..returning pod listings for varius selectors
+#--selector is the long format, -l is the short format for selector
 kubectl get pods --selector tier=prod
 kubectl get pods -l tier=prod
 kubectl get pods -l tier=prod --show-labels
 
 
-#More complex query example
+#More complex query examples
 kubectl get pods -l 'tier=prod,app=MyWebApp' --show-labels
 kubectl get pods -l 'tier=prod,app!=MyWebApp' --show-labels
 kubectl get pods -l 'tier in (prod,qa)'
 
 
-#Why doesn't this one yeild a Pod?
+#Why doesn't this query yield a Pod?
 kubectl get pods -l 'tier notin (prod,qa)'
 
 
@@ -129,7 +130,7 @@ kubectl label pod --all tier=non-prod --overwrite
 kubectl get pod --show-labels
 
 
-#Delete all pods matching our non-prod label
+#You can perform operations on the result of a label query....let's delete all pods matching our non-prod label
 kubectl delete pod -l tier=non-prod
 
 
