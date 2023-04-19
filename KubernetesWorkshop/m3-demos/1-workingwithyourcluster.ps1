@@ -6,11 +6,7 @@
 #######################################################################################################################################
 
 
-#log into c1-master1...or use your Docker Desktop Cluster
-ssh aen@c1-master1
-
-
-#Listing and Inspecting your cluster, pods, services and more.
+#This will show the API endpoint of your control plane including its DNS name and port
 kubectl cluster-info
 
 
@@ -18,7 +14,7 @@ kubectl cluster-info
 kubectl get nodes
 
 
-#Additional information about each node in the cluster. 
+#Additional information the nodes in the cluster. 
 kubectl get nodes -o wide
 
 
@@ -27,16 +23,17 @@ kubectl get pods
 
 
 #True, but let's get a list of system pods. A namespace is a way to group resources together.
+#You'll find a pod supporting each of the core cluster components. The status should be Running.
 kubectl get pods --namespace kube-system
 
 
-#Let's get additional information about each pod. 
+#Let's get additional information about each pod, such as pod ID and the node name the pod is running on.
 kubectl get pods --namespace kube-system -o wide
 
 
 #Asking kubernetes for the resources it knows about
 #Let's look at the headers in each column. Name, Alias/shortnames, API Group (or where that resource is in the k8s API Path),
-#Is the resource in a namespace, for example StorageClass issn't and is available to all namespaces and finally Kind...this is the object type.
+#Is the resource in a namespace, for example StorageClass isn't and is available to all namespaces and finally Kind...this is the object type.
 kubectl api-resources | more
 
 
@@ -44,7 +41,7 @@ kubectl api-resources | more
 kubectl api-resources | grep pod
 
 
-#Explain an indivdual resource in detail
+#Explain an indivdual resource in detail...this is core to how you're going to build and troubleshoot your yaml manifests.
 kubectl explain pod | more 
 kubectl explain pod.spec | more 
 kubectl explain pod.spec.containers | more 

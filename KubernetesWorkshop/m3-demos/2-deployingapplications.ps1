@@ -5,6 +5,8 @@
 # Platform: bash on Windows (WSL), Mac or Linux
 #######################################################################################################################################
 
+cd ../m3-demos
+
 #Deploying resources imperatively in your cluster.
 #kubectl create deployment, creates a Deployment with one replica in it.
 #This is pulling a simple hello-world app container image from a container registry.
@@ -15,10 +17,10 @@ kubectl create deployment hello-world --image=psk8s.azurecr.io/hello-app:1.0
 kubectl run hello-world-pod --image=psk8s.azurecr.io/hello-app:1.0
 
 
-#Let's see of the Deployment creates a single replica and also see if that bare pod is created. 
+#Let's see if the Deployment creates a single replica and also see if that bare pod is created. 
 #You should have two pods here...
 # - the one managed by our controller has a the pod template hash in it's name and a unique identifier
-# - the bare pod
+# - the bare pod - hello-world-pod
 kubectl get pods
 kubectl get pods -o wide
 
@@ -66,15 +68,15 @@ kubectl describe replicaset hello-world | more
 
 #Expose the Deployment as a Service. This will create a Service for the Deployment
 #We are exposing our Service on port 80, connecting to an application running on 8080 in our pod.
-#Port: Internal Cluster Port, the Service's port. You will point cluster resources here.
-#TargetPort: The Pod's Service Port, your application. That one we defined when we started the pods.
+# Port: Internal Cluster Port, the Service's port. You will point cluster resources here.
+# TargetPort: The Pod's Service Port, your application. That one we defined when we started the pods.
 kubectl expose deployment hello-world `
      --port=80 `
      --target-port=8080 `
      --type=LoadBalancer
 
 
-#Check out the CLUSTER-IP and PORT(S), that's where we'll access this service, from inside the cluster.
+#Check out the EXTERNAL-IP and PORT(S), that's where we'll access this service, from inside the cluster.
 kubectl get service hello-world
 
 
@@ -85,23 +87,19 @@ kubectl describe service hello-world
 
 
 #Access the Service inside the cluster. 
-#Since we're using docker desktop the ip address is localhost, in a cluster this would be allocated an IP address by the cluster or load balancer in the cloud.
+#Since we're using docker desktop the ip address is localhost, 
+#in a cluster this would be allocated an IP address by the cluster or load balancer in the cloud.
 kubectl get service hello-world
 $SERVICEIP=kubectl get service hello-world -o jsonpath='{.status.loadBalancer.ingress[].hostname}'
 Write-Output $SERVICEIP
 (Invoke-WebRequest $SERVICEIP -DisableKeepAlive).Content
 
 
-#Access a single pod's application directly, useful for troubleshooting.
-kubectl get endpoints hello-world
-
-
 #Using kubectl to generate yaml or json for your deployments
 #This includes runtime information...which can be useful for monitoring and config management
-#but not as source mainifests for declarative deployments
+#but not as source mainifests for declarative deployments...we'll explore how to do that in a second
 kubectl get deployment hello-world -o yaml | more 
 kubectl get deployment hello-world -o json | more 
-
 
 
 #Let's remove everything we created imperatively and start over using a declarative model
@@ -116,7 +114,7 @@ kubectl get all
 
 
 #Deploying resources declaratively in your cluster.
-#We can use apply to create our resources from yaml.
+#We can use kubectl to create our resources from yaml.
 #We could write the yaml by hand...but we can use dry-run=client to build it for us
 #This can be used a a template for move complex deployments.
 kubectl create deployment hello-world `
@@ -135,11 +133,11 @@ kubectl create deployment hello-world `
 code deployment.yaml
 
 
-#Create the deployment...declaratively...in code
+#Create the deployment...declaratively...in code. This creates a deployment rununing one pod.
 kubectl apply -f deployment.yaml
 
 
-#Generate the yaml for the service
+#Generate the yaml for the service.
 kubectl expose deployment hello-world `
      --port=80 --target-port=8080 --type=LoadBalancer `
      --dry-run=client -o yaml | more
@@ -155,7 +153,7 @@ kubectl expose deployment hello-world `
 code service.yaml 
 
 
-#Create the service declaratively
+#Create the service declaratively. This exposes our deployment with a service.
 kubectl apply -f service.yaml 
 
 
@@ -169,7 +167,9 @@ Change spec.replicas from 1 to 20
      replicas: 20
 
 
-#Update our configuration with apply to make that code to the desired state...notice how the output says "configured" it changed the state of the deployment
+#Even though we changed the file, we need to apply this configuration.
+#Update our configuration with apply to make that code to the desired state...
+#notice how the output says "configured" it changed the state of the deployment
 kubectl apply -f deployment.yaml
 
 
@@ -178,7 +178,8 @@ kubectl get deployment hello-world
 kubectl get pods | more 
 
 
-#Repeat the Invoke-WebRequest access several times to see the load balancing of the HTTP request...we're still hitting local host because its docker desktop
+#Repeat the Invoke-WebRequest access several times to see the load balancing of the HTTP request...across the different pod names
+#we're still hitting localhost because its docker desktop
 kubectl get service hello-world
 (Invoke-WebRequest localhost -DisableKeepAlive).Content
 
@@ -186,6 +187,7 @@ kubectl get service hello-world
 #We can edit the resources "on the fly" with kubectl edit. But this isn't reflected in our yaml. 
 #But this change is persisted in the etcd...cluster store. Change 20 to 30.
 #This will change the cluster state from 20 to 30 replicas.
+#Once saved notice the output: deployment.apps/hello-world edited
 kubectl edit deployment hello-world
 
 
