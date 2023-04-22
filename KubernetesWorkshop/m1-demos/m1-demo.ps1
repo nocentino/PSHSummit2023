@@ -5,6 +5,16 @@
 # Platform: PowerShell on Windows, Mac or Linux
 #######################################################################################################################################
 
+#Start up and run a container from a container registry
+docker run --name webapp `
+    --publish 80:8080 `
+    --detach psk8s.azurecr.io/hello-app:1.0
+
+(Invoke-WebRequest http://localhost:80 -DisableKeepAlive).Content
+
+docker stop webapp
+docker rm webapp
+
 
 #Set password variable used for sa password for SQL Server - https://www.youtube.com/watch?v=WyBKzBtaKWM
 $PASSWORD='S0methingS@Str0ng!'
