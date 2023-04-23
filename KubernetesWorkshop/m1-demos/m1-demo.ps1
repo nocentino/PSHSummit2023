@@ -75,7 +75,9 @@ sqlcmd -S localhost,1433 -U sa -Q 'SELECT @@SERVERNAME' -P $PASSWORD
 sqlcmd -S localhost,1433 -U sa -Q 'SELECT @@VERSION' -P $PASSWORD
 
 
-#Run a second container, new name, new port, same source image
+#Run a second container, new name, new port, same source image.
+#This container will run on 1434 since it cannot run on 1433 since there's a container already listing there.
+#Why is 1433 still there? That's the port the application is listening on "inside" the container.
 docker run `
     --name "sql2" `
     -e "ACCEPT_EULA=Y" `
