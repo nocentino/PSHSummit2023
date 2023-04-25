@@ -50,7 +50,8 @@ $SqlInstance
 
 
 #You can see the connection here and it's its SPIDs.
-Get-DbaProcess -SqlInstance $SqlInstance -ExcludeSystemSpids | Where-Object { $_.Program -eq 'dbatools PowerShell module - dbatools.io' }
+Get-DbaProcess -SqlInstance $SqlInstance -ExcludeSystemSpids | 
+    Where-Object { $_.Program -eq 'dbatools PowerShell module - dbatools.io' }
 
 
 #The connection is a SMO object. 
@@ -92,7 +93,7 @@ Get-DbaDatabase -SqlInstance $SqlInstance | Format-Table
 #   - Restoring from object (blob) and building a restore sequence without msdb 
 #   - Selecting a subset of databases from a stack of backups - default cmdlet does not support this.
 #    
-#    Why would I want to do this? Disaster recovery scenarios!!!
+#    Why would I want to do any of this? Disaster recovery scenarios!!!
 #    Also, supports complex restore patterns - file group, page, point in time ... with a much simpler syntax
 #######################################################################################################################################
 #Restoring all backups from a set of backups
@@ -105,8 +106,9 @@ Get-DbaDatabase -SqlInstance $SqlInstance | Format-Table
 $databases = @('TPCC','TPCH')
 $FullBackups = Backup-DbaDatabase -SqlInstance $SqlInstance -Database $databases -Type Full -CompressBackup -Path '/backups/sqlbackups/migrate/' 
 $FullBackups
+$FullBackups | Select-Object *
 
-#Restore them the target instance...leave the databases in recovery 
+#Restore them the target instance sql2...leave the databases in recovery 
 $FullBackups | Restore-DbaDatabase -SqlInstance 'localhost,1434' -SqlCredential $SqlCredential -NoRecovery -WithReplace
 
 
@@ -117,8 +119,10 @@ Get-DbaDatabase -SqlInstance 'localhost,1434' -SqlCredential $SqlCredential  | F
 #Now at cutover time...stop your applications and take a differential backup on the source instance
 $DiffBackups = Backup-DbaDatabase -SqlInstance $SqlInstance -Database $databases -Type Differential -CompressBackup -Path '/backups/sqlbackups/migrate/'
 $DiffBackups
+$DiffBackups | Select-Object * 
 
-#Set the source database offline
+
+#Set the source databases offline
 Set-DbaDbState -SqlInstance $SqlInstance -Database $databases -Offline -Confirm:$false | Format-Table
 
 
@@ -154,7 +158,8 @@ Write-Host 'Shared Access Signature= '$($sas.Substring(1))''
 #Build our instance's CREDENTIAL for access to blob
 $Query = "CREATE CREDENTIAL [{0}] WITH IDENTITY='Shared Access Signature', SECRET='{1}'" -f $cbc.Uri,$sas.Substring(1)   
 Invoke-DbaQuery -SqlInstance $SqlInstance -SqlCredential $SqlCredential -Query $Query
-Get-DbaCredential -SqlInstance $SqlInstance -SqlCredential $SqlCredential  -Name $cbc.Uri | Where-Object { $_.Identity -eq 'Shared Access Signature' }
+Get-DbaCredential -SqlInstance $SqlInstance -SqlCredential $SqlCredential  -Name $cbc.Uri | 
+    Where-Object { $_.Identity -eq 'Shared Access Signature' }
 
 
 #Run some backups to blob...I'm using -WhatIf to spare you the wait time
@@ -167,9 +172,10 @@ Get-AzStorageBlob -Container $BlobContainerName -Context $StorageContext -Blob "
 
 #Let's get a smaller listing of backups from our blob container...
 #Why would I want to limit the number of backup files when building the restore sequence? 
-$DaysBack = 7
+$DaysBack = 14
 $DateBack = (Get-Date).ToUniversalTime().AddDays(-$DaysBack)
-$BlobsToRestoreFrom = Get-AzStorageBlob -Container $BlobContainerName -Context $storageContext -Blob "*.bak" |  Where-Object { $_.LastModified -gt $DateBack }
+$BlobsToRestoreFrom = Get-AzStorageBlob -Container $BlobContainerName -Context $storageContext -Blob "*.bak" |  
+    Where-Object { $_.LastModified -gt $DateBack }
 
 
 #A much smaller set of backups to build the backup set from...saves time, right? 
@@ -193,6 +199,7 @@ $BackupHistory = Get-DbaBackupInformation `
 
 #Now that we've reconstructed to backup history...
 $BackupHistory
+$BackupHistory | Select-Object * 
 
 
 #We can build a restore sequence and execute the restore or script it to file...i'm only scripting this out to save you the pain of watching the restores :) 
@@ -235,10 +242,16 @@ docker run `
 
 #Make a new connection to the "new" instance.
 $SqlInstance = Connect-DbaInstance -SqlInstance "localhost,1433" -SqlCredential $SqlCredential
+$SqlInstance
 
 
 #Let's get a listing of what's on this instance
 Get-DbaDatabase -SqlInstance $SqlInstance | Format-Table
+
+
+#Let's look at the file layout one more time
+Get-DbaDbFile -SqlInstance $SqlInstance -Database TPCH | 
+    Select-Object Database,FileGroupName,TypeDescription,LogicalName,PhysicalName,Size,UsedSpace | Format-Table
 
 
 #Add one file per volume in the new file group...we'll need to set the permissions on the directories so the mssql user can create files
@@ -271,12 +284,19 @@ Get-DbaDbFile -SqlInstance $SqlInstance -Database TPCH |
 # Use Case 5 - IT'S ALIVE!!! - Building an availability group in code
 #   - Generally a complex dba task that's done in a user interface or a whole boat load of tsql using sqlcmd to hit the multiple replicas
 #   - This involves networking knowledge, authentication (AD/Certificates), and seeding databases.
+#   - I'm doing this in containers b/c I'm so tired of VMs :P But on this all works just the same on Windows. 
+#   - You can use the FailoverClusters module's cmdlets to create a windows cluster if needed
 #######################################################################################################################################
 docker stop sql1 
 docker rm sql1
 
+
+#Create a docker network 
 docker network create agnetwork
 
+
+#This time, let's start our container but on this docker network...this helps with addressing hosts by name.
+#We're also setting MSSQL_ENABLE_HADR to 1 so we can use AGs.
 docker run `
     --name "sql1" `
     --hostname "sql1" `
